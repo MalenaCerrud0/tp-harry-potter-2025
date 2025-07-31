@@ -1,0 +1,124 @@
+import hp.*
+
+describe "Tests de Harry Potter y los hechizos polimórficos" {
+  test "Clasificación de magos por casas" {
+    const harryPotter = new Mago(iq=110, poderDeSuVarita=100, pelo="negro", sangre="mestiza")
+    const hermioneGranger = new Mago(iq=140, poderDeSuVarita=90, pelo="castaño", sangre="sucia")
+    const ronWeasley = new Mago(iq=100, poderDeSuVarita=90, pelo="pelirojo", sangre="pura")
+    const dracoMalfoy = new Mago(iq=120, poderDeSuVarita=100, pelo="rubio", sangre="pura")
+    const lunaLovegood = new Mago(iq=79, poderDeSuVarita=70, pelo="castaño", sangre="sucia")
+
+    sombreroSeleccionador.seleccionarCasa(harryPotter)
+    sombreroSeleccionador.seleccionarCasa(hermioneGranger)
+    sombreroSeleccionador.seleccionarCasa(ronWeasley)
+    sombreroSeleccionador.seleccionarCasa(dracoMalfoy)
+    sombreroSeleccionador.seleccionarCasa(lunaLovegood)
+
+    //Correcta selección de casas
+    assert.equals("Gryffindor", harryPotter.casa()) //pelirojo va a G
+    assert.equals("Gryffindor", ronWeasley.casa()) //IQ promedio va a G
+    assert.equals("Ravenclaw", hermioneGranger.casa()) //muy inteligente, sangre sucia y castaño va a R
+    assert.equals("Slytherin", dracoMalfoy.casa()) //muy inteligente, sangre limpia y rubio va a S
+    assert.equals("Hufflepuff", lunaLovegood.casa()) //poco inteligente, castaño, sangre sucia
+
+    //Correcto registro de magos por cada casa
+    assert.equals([harryPotter, ronWeasley], sombreroSeleccionador.magosGryffindor())
+    assert.equals([hermioneGranger], sombreroSeleccionador.magosRavenclaw())
+    assert.equals([dracoMalfoy], sombreroSeleccionador.magosSlytherin())
+    assert.equals([lunaLovegood], sombreroSeleccionador.magosHufflepuff())
+  }
+
+  test "Seguidores y seguidos" {
+    const harryPotter = new Mago(iq=110, poderDeSuVarita=100, pelo="negro", sangre="mestiza")
+    const hermioneGranger = new Mago(iq=140, poderDeSuVarita=90, pelo="pelirojo", sangre="sucia")
+    const ronWeasley = new Mago(iq=79, poderDeSuVarita=90, pelo="pelirojo", sangre="pura")
+    const dracoMalfoy = new Mago(iq=120, poderDeSuVarita=100, pelo="rubio", sangre="pura")
+
+    sombreroSeleccionador.seleccionarCasa(harryPotter) //G
+    sombreroSeleccionador.seleccionarCasa(hermioneGranger) //G
+    sombreroSeleccionador.seleccionarCasa(ronWeasley) //G
+    sombreroSeleccionador.seleccionarCasa(dracoMalfoy) //S
+    
+    hermioneGranger.seguidores().add("seguidor1")
+    hermioneGranger.seguidores().add("seguidor2")
+    hermioneGranger.seguidores().add("seguidor3")
+    hermioneGranger.seguidores().add("seguidor4")
+
+    assert.that(ronWeasley.puedeSeguirA(harryPotter)) //puede seguir a alguien de su misma casa
+    assert.that(harryPotter.puedeSeguirA(hermioneGranger)) //puede seguir a alguien de su misma casa famoso y con un IQ más alto que el de él
+    assert.notThat(hermioneGranger.puedeSeguirA(dracoMalfoy)) //no puede seguir a alguien de otra casa
+    assert.notThat(dracoMalfoy.puedeSeguirA(dracoMalfoy)) //no puede seguirse a si mismo
+  }
+}
+
+describe "Lanzamientos de hechizos y cambios de puntos de energía y/o vida" {
+
+  test "Hechizo Sanador" {
+    const episkey = new HechizoSanador(energiaAGastar=100)
+    const hermioneGranger = new Mago(iq=140, poderDeSuVarita=90)
+    const ronWeasley = new Mago(iq=79, poderDeSuVarita=90, vida=200)
+
+    assert.notThat(hermioneGranger.esFamoso())
+    assert.notThat(hermioneGranger.puedeAprenderHechizo(episkey))
+    
+    hermioneGranger.seguidores().add("seguidor1")
+    hermioneGranger.seguidores().add("seguidor2")
+    hermioneGranger.seguidores().add("seguidor3")
+    hermioneGranger.seguidores().add("seguidor4")
+
+    assert.that(hermioneGranger.puedeAprenderHechizo(episkey))
+
+    hermioneGranger.aprender(episkey)
+    hermioneGranger.lanzarHechizoA(episkey, ronWeasley)
+
+    assert.equals(900, hermioneGranger.energia())
+    assert.equals(400, ronWeasley.vida())
+
+    ronWeasley.vida(0)
+
+    hermioneGranger.lanzarHechizoA(episkey, ronWeasley)
+
+    assert.equals(800, hermioneGranger.energia())
+    assert.that(ronWeasley.estaMuerto())
+  }
+
+  test "Hechizo de combate" {
+    const desmaius = new HechizoCombate(coeficiente=40)
+    const dracoMalfoy = new Mago(iq=110, poderDeSuVarita=80)
+    const harryPotter = new Mago(iq=100, poderDeSuVarita=100)
+
+    harryPotter.aprender(desmaius)
+    harryPotter.lanzarHechizoA(desmaius, dracoMalfoy)
+
+    assert.equals(800, harryPotter.energia())
+    assert.equals(700, dracoMalfoy.vida())
+
+    dracoMalfoy.vida(300)
+
+    harryPotter.lanzarHechizoA(desmaius, dracoMalfoy)
+
+    assert.equals(600, harryPotter.energia())
+    assert.equals(0, dracoMalfoy.vida())
+    assert.that(dracoMalfoy.estaMuerto())
+  }
+
+  test "Hechizo imperdonable" {
+    const crucio = new HechizoImperdonable(coeficiente=60)
+    const voldemort = new Mago(iq=140, poderDeSuVarita=120)
+    const harryPotter = new Mago(iq=110, poderDeSuVarita=100)
+
+    voldemort.aprender(crucio)
+    voldemort.lanzarHechizoA(crucio, harryPotter)
+
+    assert.equals(940, voldemort.energia())
+    assert.equals(880, harryPotter.vida())
+
+    harryPotter.vida(120)
+
+    voldemort.lanzarHechizoA(crucio, harryPotter)
+
+    assert.equals(880, voldemort.energia())
+    assert.equals(0, harryPotter.vida())
+    assert.that(harryPotter.estaMuerto())
+  }
+}

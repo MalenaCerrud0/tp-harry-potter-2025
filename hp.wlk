@@ -7,19 +7,19 @@ object sombreroSeleccionador {
   method seleccionarCasa(mago) {
     if (gryffindor.cumpleCriterios(mago)) {
       self.magosGryffindor().add(mago)
-      mago.casa("gryffindor")
+      mago.casa("Gryffindor")
       return "Gryffindor"
     } else if (slytherin.cumpleCriterios(mago)) {
       self.magosSlytherin().add(mago)
-      mago.casa("slytherin")
+      mago.casa("Slytherin")
       return "Slytherin"
     } else if (ravenclaw.cumpleCriterios(mago)) {
       self.magosRavenclaw().add(mago)
-      mago.casa("ravenclaw")
+      mago.casa("Ravenclaw")
       return "Ravenclaw"
     } else {
       self.magosHufflepuff().add(mago)
-      mago.casa("hufflepuff")
+      mago.casa("Hufflepuff")
       return "Hufflepuff"
     }
   }
@@ -44,24 +44,27 @@ class Mago {
   var property hechizosAprendidos = []
 
   method inteligenciaPromedio() {
-    return self.iq()<120 
-    && self.iq()>80
+    return self.iq() < 120 
+    && self.iq() >= 80
   }
 
   method muyInteligente() {
-    return self.iq() > 120
+    return self.iq() >= 120
   }
 
-  method puedeSeguir(mago) {
+  method puedeSeguirA(mago) {
     return (mago.casa() == self.casa()
-    && mago.iq() > self.iq() 
-    && mago.esFamoso()
+    && (mago.iq() > self.iq() 
+    || mago.esFamoso())
     && mago != self)
   }
 
-  method seguirOtroMago(mago) {
-    if (self.puedeSeguir(mago)) {
+  method seguirA(mago) {
+    if (self.puedeSeguirA(mago)) {
       mago.seguidores().add(self)
+      return
+    } else {
+      return "No puede seguir a este mago"
     }
   }
 
@@ -81,7 +84,7 @@ class Mago {
   method aprender(hechizo) = self.hechizosAprendidos().add(hechizo) 
 
   method lanzarHechizoA(hechizo, mago) {
-    if (!self.estaMuerto() && self.energia() >= hechizo.energia()) {
+    if (!self.estaMuerto() && self.energia() >= hechizo.energiaAGastar()) {
       if (hechizo.tipo() == "sanador" || hechizo.tipo() == "combate") {
         self.energia(self.energia() - hechizo.energiaAGastar())
         
@@ -93,18 +96,19 @@ class Mago {
           mago.vida(mago.vida() - (5 * hechizo.coeficiente() + self.poderDeSuVarita()))
         }
       } else { //hechizo.tipo() == "imperdonable"
-        self.energia(self.energia() - hechizo.x(self))
-        mago.vida(mago.vida() - 2 * hechizo.x(self))
+        hechizo.x(self)
+        self.energia(self.energia() - hechizo.energiaAGastar())
+        mago.vida(mago.vida() - 2 * hechizo.energiaAGastar())
       }
       
       if (self.hechizosAprendidos().min({h => h.energiaAGastar()}) == hechizo) {
-        return "El mago lanzó este hechizo con éxito y gastó la menor energía posible"
+        return "El mago lanzó  hechizo con éxito y gastó la menor energía posible"
       } else {
-        return "El mago lanzó este hechizo con éxito"
+        return "El mago lanzó hechizo con éxito"
       }
 
     } else {
-      self.error("El hechizo no se pudo realizar")
+      return "El hechizo no se pudo realizar"
     }
   }
 
@@ -112,8 +116,9 @@ class Mago {
     if (hechizo.tipo() == "sanador" 
     && !self.estaMuerto()) {
       self.vida(self.vida() + hechizo.energiaAGastar() * 2)
+      return
     } else {
-      self.error("El mago está muerto")
+      return "El mago está muerto"
     }
   }
 
@@ -150,21 +155,22 @@ object ravenclaw {
 class HechizoSanador {
   const property energiaAGastar
   const property tipo = "sanador"
+  var property lanzador = ""
 }
 
 class HechizoCombate {
   const property energiaAGastar = 200
   const property coeficiente 
   const property tipo = "combate"
-
+  var property lanzador = ""
 }
 
 class HechizoImperdonable {
   const property tipo = "imperdonable"
   const property coeficiente
-  var property lanzador = ""
+  var property energiaAGastar = 0
 
-  method x() = self.coeficiente() - 4 * lanzador.seguidores().size()
-
-  method energiaAGastar() = self.x()
+  method x(mago) {
+    self.energiaAGastar(self.coeficiente() - 4 * mago.seguidores().size())
+  }
 }
